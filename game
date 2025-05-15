@@ -1,0 +1,1535 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>  
+#include <stdbool.h>
+#include <time.h>    
+#include <string.h>
+#include <ctype.h>
+#include <windows.h> 
+#include <conio.h> 
+
+
+
+#define print printf
+#define middle "\t\t\t\t\t"
+#define line "==========================================="
+#define NAME_LENGTH 50
+#define INVENTORY_SIZE 5
+
+#define TEST_MODE 0
+
+#if TEST_MODE
+#define Delay(x)
+#else
+#define Delay(x) Sleep(x)
+#endif
+
+typedef struct {
+    char name[NAME_LENGTH + 1];
+    int coins;
+    int hp;
+    int max_hp;
+    int dealtDamage;
+    int stamina;
+    int max_stamina;
+    int exp;
+    int level;
+    char* inventory[INVENTORY_SIZE];
+}Player_Stats;
+
+typedef struct {
+    char name[NAME_LENGTH + 1];
+    int hp;
+    int max_hp; //for boss only
+    int level;
+    int damage;
+    int expReward;
+    int coinsReward;
+}Enemy;
+
+
+
+Player_Stats player = { .coins = 0, .hp = 100,.dealtDamage = 10, .stamina = 50, .exp = 0, .level = 1, .inventory = {NULL, NULL, NULL, NULL, NULL} };
+Enemy Shadow_Monster = { .name = "Shadow Monster", .hp = 80,  .level = 1, .damage = 4,  .expReward = 25, .coinsReward = 4 };
+Enemy Spectral_Archer = { .name = "Spectral Archer", .hp = 100, .level = 3, .damage = 6,  .expReward = 35, .coinsReward = 6 };
+Enemy Dark_Sorcerer = { .name = "Dark Sorcerer", .hp = 120, .level = 4, .damage = 8,  .expReward = 50, .coinsReward = 10 };
+Enemy Null_Warden = { .name = "Null Warden", .hp = 140, .level = 6, .damage = 10, .expReward = 65, .coinsReward = 14 };
+Enemy Obsidian_Brute = { .name = "Obsidian Brute", .hp = 160,.max_hp = 160, .level = 8, .damage = 12, .expReward = 85, .coinsReward = 18 };
+Enemy Echo_Stalker = { .name = "Echo Stalker", .hp = 180, .level = 10, .damage = 14, .expReward = 105, .coinsReward = 22 };
+Enemy Shardhowl = { .name = "Shardhowl", .hp = 200, .level = 13, .damage = 16, .expReward = 130, .coinsReward = 26 };
+Enemy Code_Minion = { .name = "Code Minion", .hp = 20, .level = 5, .damage = 5, .expReward = 5 };
+Enemy Code_Devourer = { .name = "Code Devourer", .hp = 210,.max_hp = 210, .level = 16, .damage = 20, .expReward = 150, .coinsReward = 50 };
+
+
+char action;
+int chance;
+char retry = 'Y';
+
+void title_screen(void);
+void loading_screen(void);
+void intro(void);
+void game(void);
+void story1(void);
+void story2(void);
+void story3(void);
+void story4(void);
+void story5(void);
+void story6(void);
+void story7(void);
+void Final_Boss(void);
+void take_damage(Player_Stats* p, int);
+void choose_action(Enemy* Enm, char action);
+void show_stats(void);
+void print_inventory(void);
+void check_level_up(void);
+void random_loot_drop(Enemy* Enm);
+void stamina_regen(void);
+void reset_player(void);
+void shop(void);
+void death_scene(Enemy* Enm);
+
+int main(void)
+{
+
+    while (retry == 'Y' || retry == 'y')
+    {
+        srand(time(NULL));
+
+        title_screen();
+        loading_screen();
+        reset_player();
+        intro();
+        game();
+
+        print(middle "Would you like to play again? (Y/N)\n");
+        print(middle ">>");
+        scanf(" %c", &retry);
+    }
+
+
+    return 0;
+}
+
+void title_screen(void)
+{
+    Delay(3000);
+    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    print("                                                      _____          _        _  __      _       _     _   \n");
+    print("                                                     / ____|        | |      | |/ /     (_)     | |   | |  \n");
+    print("                                                    | |     ___   __| | ___  | ' / _ __  _  __ _| |__ | |_ \n");
+    print("                                                    | |    / _ \\ / _` |/ _ \\ |  < | '_ \\| |/ _` | '_ \\| __|\n");
+    print("                                                    | |___| (_) | (_| |  __/ | . \\| | | | | (_| | | | | |_ \n");
+    print("                                                     \\_____\\___/ \\__,_|\\___| |_|\\_\\_| |_|_|\\__, |_| |_|\\__|\n");
+    print("                                                                                            __/ |          \n");
+    print("                                                                                           |___/           \n");
+    print("\n");
+    Delay(5000);
+}
+
+void loading_screen(void)
+{
+    system("cls");
+    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    for (int i = 0; i <= 100; i += 10) {
+        printf("\r%sLoading: [%d%%]", middle, i);
+        Delay(400);
+    }
+    system("cls");
+    print("\n");
+}
+
+void game(void)
+{
+    story1();
+    if (player.hp <= 0)
+    {
+        death_scene(&Shadow_Monster);
+        return;
+    }
+    story2();
+    if (player.hp <= 0)
+    {
+        death_scene(&Spectral_Archer);
+        return;
+    }
+    story3();
+    if (player.hp <= 0)
+    {
+        death_scene(&Dark_Sorcerer);
+        return;
+    }
+    story4();
+    if (player.hp <= 0)
+    {
+        death_scene(&Null_Warden);
+        return;
+    }
+    story5();
+    if (player.hp <= 0)
+    {
+        death_scene(&Obsidian_Brute);
+        return;
+    }
+    story6();
+    if (player.hp <= 0)
+    {
+        death_scene(&Echo_Stalker);
+        return;
+    }
+    story7();
+    if (player.hp <= 0)
+    {
+        death_scene(&Shardhowl);
+        return;
+    }
+    Final_Boss();
+    if (player.hp <= 0)
+    {
+        death_scene(&Code_Devourer);
+        return;
+    }
+    print("\n");
+    Delay(1000);
+    print(middle "Game created by Owais - 2025 Edition\n");
+    Delay(1000);
+    print(middle "Thanks for playing CodeKnight.\n\n");
+    Delay(1500);
+    return;
+}
+
+void intro(void)
+{
+    print(middle line "\n");
+    Delay(700);
+    print(middle "\tWELCOME TO... CODEKNIGHT\n");
+    Delay(1000);
+    print(middle "\tTrial of the Cursed Realm\n");
+    Delay(1300);
+    print(middle line "\n\n");
+    Delay(1000);
+    print(middle "A forgotten realm...\n");
+    Delay(1300);
+    print(middle "Filled with logic traps...\n");
+    Delay(1300);
+    print(middle "Cursed loops...\n");
+    Delay(1200);
+    print(middle "And memory beasts...\n\n");
+    Delay(1500);
+    print(middle "Only one can escape...\n");
+    Delay(1200);
+    print(middle "Only one may wield the code...\n");
+    Delay(1200);
+    print(middle "Only one...\n");
+    Delay(800);
+    print(middle "Can become...\n");
+    Delay(1000);
+    print(middle "The CodeKnight.\n\n");
+    Delay(1800);
+}
+
+void story1(void)
+{
+    print(middle "What is your knight name?\n");
+    Delay(700);
+    print(middle ">> ");
+    gets(player.name);
+    
+    Delay(1000);
+    print("\n\n");
+    print(middle "Welcome, brave %s...\n", player.name);
+    Delay(1200);
+    print(middle "The gates creak open as the Trial begins...\n");
+    Delay(1400);
+    print(middle "You step into the first chamber of the Cursed Realm.\n");
+    Delay(1600);
+    print("\n");
+    print(middle line "\n\n");
+    Delay(800);
+    print(middle "Suddenly...\n");
+    Delay(1000);
+    print(middle "A shriek pierces the chamber!\n");
+    Delay(1100);
+    print(middle "A wild Shadowy Beast rushes toward you!\n");
+    Delay(1200);
+    print(middle "You grip your blade tightly.\n");
+    Delay(1000);
+    print(middle "This is not a drill...\n\n");
+    Delay(1500);
+    print(middle "⚠️  Combat Tutorial:\n");
+    Delay(700);
+    print(middle "[A] - Attack with your sword\n");
+    Delay(700);
+    print(middle "[I] - Use Inventory\n");
+    Delay(700);
+    print(middle "[S] - View your stats\n");
+    Delay(700);
+    print(middle "Choose wisely with each turn...\n\n");
+    Delay(1300);
+    print(middle "Battle Start: Shadow Beast\n");
+    Delay(1000);
+    while (player.hp > 0 && Shadow_Monster.hp > 0)
+    {
+        print(middle "%s's health is %d\n", Shadow_Monster.name, Shadow_Monster.hp);
+        take_damage(&player, Shadow_Monster.damage);
+        if (player.hp <= 0)
+            break;
+        print(middle "%s has attacked you, and made you lose %d hp, your hp is %d\n", Shadow_Monster.name, Shadow_Monster.damage, player.hp);
+        print(middle "What's your move %s?\n", player.name);
+        print(middle "[A] - Attack with your sword\n");
+        print(middle "[I] - See Inventory \n");
+        print(middle "[S] - View your stats\n");
+        print(middle ">");
+        scanf(" %c", &action);
+        while (getchar() != '\n');
+        choose_action(&Shadow_Monster, action);
+    }
+    if (Shadow_Monster.hp <= 0)
+    {
+        player.hp = player.max_hp;
+        player.stamina = player.max_stamina;
+        player.exp += Shadow_Monster.expReward;
+        player.coins += Shadow_Monster.coinsReward;
+        print(middle "You won the battle!\n");
+        print(middle "You Gained %d Coins for defeating %s\n", Shadow_Monster.coinsReward, Shadow_Monster.name);
+        print(middle "You Gained %d Exp for defeating %s\n", Shadow_Monster.expReward, Shadow_Monster.name);
+        check_level_up();
+        random_loot_drop(&Shadow_Monster);
+        print("\n");
+        Delay(1000);
+        print(middle line "\n\n");
+        Delay(1000);
+        print(middle "The beast fades into shadowy ash, its cry echoing in silence.\n");
+        Delay(1300);
+        print(middle "Your breathing slows. The chamber's heat begins to fade...\n\n");
+        Delay(1500);
+        print(middle "A glowing rune appears on the ground.\n");
+        Delay(1200);
+        print(middle "You step forward, uncertain, but drawn by fate.\n\n");
+        Delay(1700);
+        print(middle "A soft voice whispers...\n");
+        Delay(1600);
+        print(middle "\"Only the first of many trials... CodeKnight.\"\n\n");
+        Delay(1400);
+        print(middle "Your wounds ache, but your resolve hardens.\n");
+        Delay(1300);
+        print(middle "Ahead, a sealed door begins to open...\n");
+        Delay(1400);
+        print(middle "Darkness lies beyond. And answers.\n");
+        Delay(1400);
+        print(middle "The glowing rune pulses beneath your feet...\n");
+        Delay(1400);
+        print(middle "You are pulled forward into the next chamber.\n\n");
+        Delay(1600);
+        print(middle "Your wounds still ache, but your steps are firm.\n");
+        Delay(1200);
+        print(middle "You hear faint muttering... a voice? A merchant?\n");
+        Delay(1300);
+        print(middle "You approach, curious.\n");
+        Delay(1000);
+        print(middle "You meet a cloaked merchant in the shadows...\n");
+        Delay(1000);
+        shop();
+    }
+    else
+    {
+        return;
+    }
+}
+
+void story2(void)
+{
+    int spectral_archer_ability = 0;
+    Delay(1000);
+    print(middle line "\n");
+    print(middle "You leave the merchant behind and step into the hallway.\n");
+    Delay(1300);
+    print(middle "It's colder now. The walls hum with ancient energy.\n");
+    Delay(1200);
+    print(middle "In the distance, you hear a faint... twang?\n");
+    Delay(1000);
+    print(middle "An arrow flies past your face. A Spectral Archer appears!\n");
+    Delay(1000);
+    print(middle "You raise your weapon and prepare to fight.\n\n");
+    Delay(1200);
+    print(middle "⚔️  Enemy Encounter: Spectral Archer\n");
+    Delay(1000);
+    while (player.hp > 0 && Spectral_Archer.hp > 0)
+    {
+        print(middle "%s's health is %d\n", Spectral_Archer.name, Spectral_Archer.hp);
+        take_damage(&player, Spectral_Archer.damage);
+        spectral_archer_ability++;
+        if (player.hp <= 0)
+            break;
+        if ((spectral_archer_ability % 5) == 0)
+        {
+            take_damage(&player, 2);
+            print(middle "Spectral Archer used piercing arrow, and dealt 2 extra damage\n");
+
+        }
+        print(middle "%s has attacked you, and made you lose %d hp, your hp is %d\n", Spectral_Archer.name, Spectral_Archer.damage, player.hp);
+        print(middle "What's your move %s?\n", player.name);
+        print(middle "[A] - Attack with your sword\n");
+        print(middle "[I] - See Inventory \n");
+        print(middle "[S] - View your stats\n");
+        print(middle ">");
+        scanf(" %c", &action);
+        while (getchar() != '\n');
+        choose_action(&Spectral_Archer, action);
+    }
+    if (Spectral_Archer.hp <= 0)
+    {
+        player.hp = player.max_hp;
+        player.stamina = player.max_stamina;
+        player.exp += Spectral_Archer.expReward;
+        player.coins += Spectral_Archer.coinsReward;
+        print("\n");
+        print(middle "You won the battle!\n");
+        print(middle "You Gained %d Coins for defeating %s\n", Spectral_Archer.coinsReward, Spectral_Archer.name);
+        print(middle "You Gained %d Exp for defeating %s\n", Spectral_Archer.expReward, Spectral_Archer.name);
+        check_level_up();
+        random_loot_drop(&Spectral_Archer);
+        Delay(1000);
+        print(middle line "\n");
+        Delay(1000);
+        print(middle "After defeating the Spectral Archer, silence settles again...\n");
+        Delay(1300);
+        print(middle "You wipe the dust from your blade. A chill runs down your spine.\n");
+        Delay(1300);
+        print(middle "Ahead, a staircase descends into a darker chamber.\n");
+        Delay(1300);
+        print(middle "But before stepping down...\n");
+        Delay(1000);
+        print(middle "You hear a familiar cough, it's the merchant again!\n");
+        Delay(1300);
+        print(middle "\"Ah, CodeKnight! Survived, did you? Care to browse my wares?\"\n\n");
+        Delay(1000);
+        shop();
+    }
+    else
+    {
+        return;
+    }
+}
+
+void story3(void)
+{
+    int dark_sorcerer_ability = 0;
+    int counter = 0;
+
+    print("\n");
+    print(middle "With your gear stocked and spirit ready...\n");
+    Delay(1000);
+    print(middle "You descend into the unknown...\n");
+    Delay(1000);
+    print(middle "The shadows grow heavier. You sense... something powerful awaits.\n\n");
+    Delay(1400);
+
+    while (player.hp > 0 && Dark_Sorcerer.hp > 0)
+    {
+        print(middle "%s's health is %d\n", Dark_Sorcerer.name, Dark_Sorcerer.hp);
+        take_damage(&player, Dark_Sorcerer.damage);
+        dark_sorcerer_ability++;
+        if (player.hp <= 0)
+            break;
+        if ((dark_sorcerer_ability % 4) == 0)
+        {
+            player.stamina -= 5;
+            print(middle "The Dark Sorcerer whispers forbidden code... Your stamina drops by 5!\n");
+
+        }
+        if (Dark_Sorcerer.hp <= 75 && counter == 0)
+        {
+            take_damage(&player, Dark_Sorcerer.damage);
+            counter++;
+            print(middle "The Dark Sorcerer casts a dark spell, dealing %d damage!\n", Dark_Sorcerer.damage);
+        }
+        print(middle "%s has attacked you, and made you lose %d hp, your hp is %d\n", Dark_Sorcerer.name, Dark_Sorcerer.damage, player.hp);
+        print(middle "What's your move %s?\n", player.name);
+        print(middle "[A] - Attack with your sword\n");
+        print(middle "[I] - See Inventory \n");
+        print(middle "[S] - View your stats\n");
+        print(middle ">");
+        scanf(" %c", &action);
+        while (getchar() != '\n');
+        choose_action(&Dark_Sorcerer, action);
+    }
+    if (Dark_Sorcerer.hp <= 0)
+    {
+        player.hp = player.max_hp;
+        player.stamina = player.max_stamina;
+        player.exp += Dark_Sorcerer.expReward;
+        player.coins += Dark_Sorcerer.coinsReward;
+        print("\n");
+        print(middle "You won the battle!\n");
+        print(middle "You Gained %d Coins for defeating %s\n", Dark_Sorcerer.coinsReward, Dark_Sorcerer.name);
+        print(middle "You Gained %d Exp for defeating %s\n", Dark_Sorcerer.expReward, Dark_Sorcerer.name);
+        check_level_up();
+        random_loot_drop(&Dark_Sorcerer);
+        Delay(1000);
+        print(middle line "\n\n");
+        print(middle "The sorcerer's cloak crumbles to dust, and silence returns.\n");
+        Delay(1300);
+        print(middle "You grip your blade tighter... That power was unlike the others.\n");
+        Delay(1300);
+        print(middle "Suddenly, a shimmer appears in the corner of the room.\n");
+        Delay(1300);
+        print(middle "From the shadows... that same cloaked merchant steps forward!\n");
+        Delay(1300);
+        print(middle "\"Still standing, CodeKnight? I'm impressed... Perhaps you'd like to browse?\"\n\n");
+        Delay(1000);
+        shop();
+    }
+    else
+    {
+        return;
+    }
+
+}
+
+void story4(void)
+{
+    int null_warden_turn_counter = 0;
+    int null_warden_stamina_loss_ability = 2;
+    int multiplier = 1;
+
+    print("\n");
+    print(middle "You descend further... the silence is deafening.\n");
+    Delay(1200);
+    print(middle "The air grows heavier. Symbols flicker across the walls...\n");
+    Delay(1400);
+    print(middle "You feel something...or someone...watching you.\n");
+    Delay(1300);
+    print(middle "A pulsing void opens before you...\n");
+    Delay(1400);
+    print(middle "From within it, a figure floats forward...\n");
+    Delay(1300);
+    print(middle "Wrapped in ragged code scripts, eyes glowing with null energy...\n");
+    Delay(1300);
+    print(middle "The Null Warden.\n");
+    Delay(1300);
+    print(middle "Its corrupted whispers seep into your mind.\n\n");
+    Delay(1500);
+    print(middle "Enemy Encounter: Null Warden\n");
+    Delay(1000);
+
+    while (player.hp > 0 && Null_Warden.hp > 0)
+    {
+        print(middle "%s's health is %d\n", Null_Warden.name, Null_Warden.hp);
+        take_damage(&player, Null_Warden.damage);
+
+        null_warden_turn_counter++;
+
+        if ((null_warden_turn_counter % 4) == 0)
+        {
+            player.stamina -= null_warden_stamina_loss_ability * multiplier;
+            print(middle "Null Warden distorts the realm's code...\n");
+            Delay(1000);
+            print(middle "Your stamina is siphoned by the void! (-%d Stamina)\n", null_warden_stamina_loss_ability * multiplier);
+            multiplier++;
+        }
+
+        if (player.hp <= 0)
+            break;
+
+        print(middle "%s has attacked you, and made you lose %d hp, your hp is %d\n", Null_Warden.name, Null_Warden.damage, player.hp);
+        print(middle "What's your move %s?\n", player.name);
+        print(middle "[A] - Attack with your sword\n");
+        print(middle "[I] - See Inventory \n");
+        print(middle "[S] - View your stats\n");
+        print(middle ">");
+        scanf(" %c", &action);
+        while (getchar() != '\n');
+        choose_action(&Null_Warden, action);
+    }
+
+    if (Null_Warden.hp <= 0)
+    {
+        player.hp = player.max_hp;
+        player.stamina = player.max_stamina;
+        player.exp += Null_Warden.expReward;
+        player.coins += Null_Warden.coinsReward;
+        print("\n");
+        print(middle "You won the battle!\n");
+        print(middle "You Gained %d Coins for defeating %s\n", Null_Warden.coinsReward, Null_Warden.name);
+        print(middle "You Gained %d Exp for defeating %s\n", Null_Warden.expReward, Null_Warden.name);
+        check_level_up();
+        random_loot_drop(&Null_Warden);
+
+        Delay(1000);
+        print(middle line "\n");
+        Delay(1000);
+        print(middle "The Null Warden glitches violently and collapses into static.\n");
+        Delay(1300);
+        print(middle "Its final whisper echoes... \"There are... more...\"\n");
+        Delay(1300);
+        print(middle "A strange energy hums in the air.\n");
+        Delay(1200);
+        print(middle "Your path leads upward now - a broken elevator flickers to life.\n");
+        Delay(1300);
+        print(middle "You step on, unsure if you're rising to salvation... or deeper curses.\n");
+        Delay(1400);
+        print(middle "Before the platform ascends...\n");
+        Delay(1200);
+        print(middle "A familiar voice calls out...\n");
+        Delay(1000);
+        print(middle "\"Well well, look who's still alive! Care to restock, CodeKnight?\"\n");
+        Delay(1200);
+        print(middle "The merchant grins from the shadows once again.\n\n");
+        Delay(1000);
+        shop();
+    }
+    else
+    {
+        return;
+    }
+}
+
+void story5(void)
+{
+    print("\n");
+    print(middle "The elevator lurches to a halt in a chamber carved from black stone...\n");
+    Delay(1300);
+    print(middle "Obsidian veins pulse beneath your feet with molten light.\n");
+    Delay(1300);
+    print(middle "The air is scorching. A low growl rumbles through the room.\n");
+    Delay(1300);
+    print(middle "You draw your weapon...\n");
+    Delay(1000);
+    print(middle "From behind a crumbled pillar, it emerges...\n");
+    Delay(1300);
+    print(middle "Towering. Armored. Relentless.\n");
+    Delay(1000);
+    print(middle "The Obsidian Brute.\n");
+    Delay(1300);
+    print(middle "Its fists crack the ground with each step forward.\n\n");
+    Delay(1500);
+    print(middle "Enemy Encounter: Obsidian Brute\n");
+    Delay(1000);
+
+    while (player.hp > 0 && Obsidian_Brute.hp > 0)
+    {
+        print(middle "%s's health is %d\n", Obsidian_Brute.name, Obsidian_Brute.hp);
+        take_damage(&player, Obsidian_Brute.damage);
+
+        if (player.hp <= 0)
+            break;
+
+        print(middle "%s has attacked you, and made you lose %d hp, your hp is %d\n", Obsidian_Brute.name, Obsidian_Brute.damage, player.hp);
+        print(middle "What's your move %s?\n", player.name);
+        print(middle "[A] - Attack with your sword\n");
+        print(middle "[I] - See Inventory \n");
+        print(middle "[S] - View your stats\n");
+        print(middle ">");
+        scanf(" %c", &action);
+        while (getchar() != '\n');
+        choose_action(&Obsidian_Brute, action);
+    }
+
+    if (Obsidian_Brute.hp <= 0)
+    {
+        player.hp = player.max_hp;
+        player.stamina = player.max_stamina;
+        player.exp += Obsidian_Brute.expReward;
+        player.coins += Obsidian_Brute.coinsReward;
+        print("\n");
+        print(middle "You won the battle!\n");
+        print(middle "You Gained %d Coins for defeating %s\n", Obsidian_Brute.coinsReward, Obsidian_Brute.name);
+        print(middle "You Gained %d Exp for defeating %s\n", Obsidian_Brute.expReward, Obsidian_Brute.name);
+        check_level_up();
+        random_loot_drop(&Obsidian_Brute);
+
+        Delay(1000);
+        print(middle line "\n");
+        Delay(1000);
+        print(middle "The Brute crumbles like a shattered volcano...\n");
+        Delay(1300);
+        print(middle "Smoke and sparks burst from its remains.\n");
+        Delay(1300);
+        print(middle "You wipe your brow. The heat starts to fade.\n");
+        Delay(1300);
+        print(middle "Ahead lies a path lit with flickering flame...\n");
+        Delay(1300);
+        print(middle "But before you take it...\n");
+        Delay(1100);
+        print(middle "\"Still in one piece, CodeKnight?\" a voice chuckles behind you.\n");
+        Delay(1200);
+        print(middle "The merchant stands, fanning himself. \"Care for a trade?\"\n\n");
+        Delay(1000);
+        shop();
+    }
+    else
+    {
+        return;
+    }
+}
+
+void story6(void)
+{
+    int echo_stalker_turn_counter = 0;
+    bool echo_enraged = false;
+
+    print("\n");
+    print(middle "The flame-lit path leads to a vast mirrored corridor...\n");
+    Delay(1300);
+    print(middle "Reflections dance, but not all are yours.\n");
+    Delay(1300);
+    print(middle "A chill crawls up your spine as you take a cautious step forward.\n");
+    Delay(1300);
+    print(middle "A shadow peels itself from your reflection...\n");
+    Delay(1300);
+    print(middle "It moves like you. Fights like you. Wears your face...\n");
+    Delay(1300);
+    print(middle "The Echo Stalker.\n");
+    Delay(1300);
+    print(middle "Its blade mirrors yours, dripping with ghostly static.\n\n");
+    Delay(1500);
+    print(middle "⚔️ Enemy Encounter: Echo Stalker\n");
+    Delay(1000);
+
+    while (player.hp > 0 && Echo_Stalker.hp > 0)
+    {
+        print(middle "%s's health is %d\n", Echo_Stalker.name, Echo_Stalker.hp);
+
+        echo_stalker_turn_counter++;
+
+        if (!echo_enraged && Echo_Stalker.hp <= 45)
+        {
+            echo_enraged = true;
+            print(middle "⚠️  The Echo flickers violently, breaking its calm form...\n");
+            Delay(900);
+            print(middle "It now mimics you with deadly precision. Your shadow grows stronger.\n\n");
+            Delay(1000);
+        }
+
+        if ((echo_stalker_turn_counter % 3) == 0)
+        {
+            if (Echo_Stalker.hp <= 45)
+            {
+                take_damage(&player, (player.dealtDamage + 3));
+                print(middle "%s mirrored your last strike! You took %d damage. Your hp is %d\n", Echo_Stalker.name, player.dealtDamage + 3, player.hp);
+            }
+            else
+            {
+                take_damage(&player, (player.dealtDamage + 1));
+                print(middle "%s mirrored your last strike! You took %d damage. Your hp is %d\n", Echo_Stalker.name, player.dealtDamage + 1, player.hp);
+            }
+        }
+        else
+        {
+            take_damage(&player, Echo_Stalker.damage);
+            print(middle "%s has attacked you, and made you lose %d hp, your hp is %d\n", Echo_Stalker.name, Echo_Stalker.damage, player.hp);
+        }
+
+        if (player.hp <= 0)
+            break;
+
+        print(middle "What's your move %s?\n", player.name);
+        print(middle "[A] - Attack with your sword\n");
+        print(middle "[I] - See Inventory\n");
+        print(middle "[S] - View your stats\n");
+        print(middle ">");
+        scanf(" %c", &action);
+        while (getchar() != '\n');
+        choose_action(&Echo_Stalker, action);
+    }
+
+    if (Echo_Stalker.hp <= 0)
+    {
+        player.hp = player.max_hp;
+        player.stamina = player.max_stamina;
+        player.exp += Echo_Stalker.expReward;
+        player.coins += Echo_Stalker.coinsReward;
+        print("\n");
+        print(middle "You won the battle!\n");
+        print(middle "You Gained %d Coins for defeating %s\n", Echo_Stalker.coinsReward, Echo_Stalker.name);
+        print(middle "You Gained %d Exp for defeating %s\n", Echo_Stalker.expReward, Echo_Stalker.name);
+        check_level_up();
+        random_loot_drop(&Echo_Stalker);
+
+        Delay(1000);
+        print(middle line "\n");
+        Delay(1000);
+        print(middle "The Echo shatters into shards of light, its last mimicry a twisted smile.\n");
+        Delay(1300);
+        print(middle "You stand alone in a hall of still reflections once more.\n");
+        Delay(1300);
+        print(middle "But your footsteps no longer echo...\n");
+        Delay(1200);
+        print(middle "A metallic clang breaks the silence - the merchant, again.\n");
+        Delay(1300);
+        print(middle "\"I almost mistook that thing for you! Glad it wasn't.\"\n");
+        Delay(1300);
+        print(middle "\"Now, how about a deal before your next nightmare?\"\n\n");
+        Delay(1000);
+        shop();
+    }
+    else
+    {
+        return;
+    }
+}
+
+void story7(void)
+{
+    int shardhowl_turn_counter = 0;
+
+    print("\n");
+    print(middle "The corridor narrows into a crystalline abyss...\n");
+    Delay(1300);
+    print(middle "Cracked mirrors and jagged glass line the walls.\n");
+    Delay(1300);
+    print(middle "You walk carefully, your reflection shattered across a thousand shards.\n");
+    Delay(1300);
+    print(middle "Suddenly, glass begins to rattle. Then scream.\n");
+    Delay(1300);
+    print(middle "From the shards, a beast forms - fangs, claws, and a warped face.\n");
+    Delay(1300);
+    print(middle "Shardhowl.\n");
+    Delay(1300);
+    print(middle "Its voice is a chorus of breaking glass and distorted code.\n\n");
+    Delay(1500);
+    print(middle "⚔️ Enemy Encounter: Shardhowl\n");
+    Delay(1000);
+
+    while (player.hp > 0 && Shardhowl.hp > 0)
+    {
+        print(middle "%s's health is %d\n", Shardhowl.name, Shardhowl.hp);
+
+        shardhowl_turn_counter++;
+
+        if ((shardhowl_turn_counter % 5) == 0)
+        {
+            take_damage(&player, 8);
+            take_damage(&player, 8);
+            take_damage(&player, 8);
+            print(middle "Shardhowl goes into a frenzy! It slashes you three times\n");
+            print(middle "with razor-sharp glass shards, dealing 24 damage!\n");
+            print(middle "Your hp is %d\n", player.hp);
+        }
+        else
+        {
+            take_damage(&player, Shardhowl.damage);
+            print(middle "%s has attacked you, and made you lose %d hp, your hp is %d\n", Shardhowl.name, Shardhowl.damage, player.hp);
+        }
+
+        if (player.hp <= 0)
+            break;
+
+        print(middle "What's your move %s?\n", player.name);
+        print(middle "[A] - Attack with your sword\n");
+        print(middle "[I] - See Inventory\n");
+        print(middle "[S] - View your stats\n");
+        print(middle ">");
+        scanf(" %c", &action);
+        while (getchar() != '\n');
+        choose_action(&Shardhowl, action);
+    }
+
+    if (Shardhowl.hp <= 0)
+    {
+        player.hp = player.max_hp;
+        player.stamina = player.max_stamina;
+        player.exp += Shardhowl.expReward;
+        player.coins += Shardhowl.coinsReward;
+        print("\n");
+        print(middle "You won the battle!\n");
+        print(middle "You Gained %d Coins for defeating %s\n", Shardhowl.coinsReward, Shardhowl.name);
+        print(middle "You Gained %d Exp for defeating %s\n", Shardhowl.expReward, Shardhowl.name);
+        check_level_up();
+        random_loot_drop(&Shardhowl);
+
+        Delay(1000);
+        print(middle line "\n");
+        Delay(1000);
+        print(middle "The beast shatters into a thousand pieces...\n");
+        Delay(1300);
+        print(middle "Glass rains down like cold tears. Your reflection reforms.\n");
+        Delay(1300);
+        print(middle "You stand taller. Stronger. Unshaken.\n");
+        Delay(1200);
+        print(middle "The chamber opens into a final staircase...\n");
+        Delay(1300);
+        print(middle "Darkness coils at the top like smoke...\n");
+        Delay(1300);
+        print(middle "But before you ascend...\n");
+        Delay(1100);
+        print(middle "\"This is your last chance to stock up,\" the merchant says, more serious now.\n");
+        Delay(1200);
+        print(middle "\"The next room... isn't just a fight. It's judgment.\"\n\n");
+        Delay(1000);
+        shop();
+        Delay(2000);
+        print(middle "Before you leave...\n");
+        Delay(1000);
+        print(middle "The merchant stops you, his voice softer than usual.\n");
+        Delay(1200);
+        print(middle "\"Before you leave... I would like you to have this Elixir as a gift.\"\n");
+        Delay(1300);
+        print(middle "🌟 You received an Elixir from the merchant!\n\n");
+        Delay(1300);
+
+    }
+    else
+    {
+        return;
+    }
+}
+
+void Final_Boss(void)
+{
+    strcpy(player.inventory[4], "Elixir");
+    int code_devourer_turn_counter = 0;
+    bool minion_alive = false;
+    bool minion_has_spawned_once = false;
+    bool skipped_player_turn = false;
+    char action;
+
+    print("\n");
+    print(middle "The final staircase winds upward into pitch blackness...\n\n");
+    Delay(1300);
+    print(middle "Each step feels heavier than the last.\n\n");
+    Delay(1300);
+    print(middle "At the summit, an ancient gate of corrupted code looms ahead.\n\n");
+    Delay(1300);
+    print(middle "As you approach, it crumbles into pixelated dust.\n\n");
+    Delay(1300);
+    print(middle "Beyond it... silence.\n\n");
+    Delay(1200);
+    print(middle "And then-\n\n");
+    Delay(1000);
+    print(middle "A presence.\n\n");
+    Delay(1200);
+    print(middle "From the void emerges a towering figure clad in fragmented armor...\n\n");
+    Delay(1400);
+    print(middle "Eyes burning like firewall breaches...\n\n");
+    Delay(1300);
+    print(middle "The Code Devourer.\n\n");
+    Delay(1500);
+    print(middle "Its laugh distorts the very air, warping the world around you.\n\n");
+    Delay(1400);
+    print(middle "This is it. The end of the corrupted realm. The final test.\n\n");
+    Delay(1700);
+    print(middle "👑 Final Boss Encounter: The Code Devourer 👑\n\n");
+    Delay(1200);
+
+    while (player.hp > 0 && Code_Devourer.hp > 0)
+    {
+        print(middle "%s's corrupted essence glows - HP: %d\n\n", Code_Devourer.name, Code_Devourer.hp);
+        Delay(500);
+
+        code_devourer_turn_counter++;
+
+        if ((code_devourer_turn_counter % 5) == 0 && !minion_has_spawned_once)
+        {
+            minion_alive = true;
+            minion_has_spawned_once = true;
+            Code_Minion.hp = 20;
+            print(middle "⚠️  The Code Devourer summons a Code Minion from the shadows!\n\n");
+            Delay(1000);
+        }
+
+        if ((code_devourer_turn_counter % 7) == 0)
+        {
+            int chance = rand() % 3;
+            switch (chance)
+            {
+            case 0:
+                take_damage(&player, 10);
+                print(middle "💥 The Devourer surges with corrupted power and unleashes a brutal strike!\n");
+                Delay(800);
+                print(middle "You take an additional 10 damage! Your HP is now %d\n\n", player.hp);
+                Delay(1000);
+                break;
+            case 1:
+                Code_Devourer.damage += 2;
+                print(middle "⚠️ The Devourer roars! Its damage permanently increases by 2!\n");
+                Delay(800);
+                print(middle "Future attacks will hit harder... now dealing %d damage.\n\n", Code_Devourer.damage);
+                Delay(1000);
+                break;
+            case 2:
+                skipped_player_turn = true;
+                print(middle "⛔ The Devourer warps reality, freezing your actions for a moment...\n");
+                Delay(800);
+                print(middle "You lose your turn!\n\n");
+                Delay(1000);
+                break;
+            }
+        }
+
+        take_damage(&player, Code_Devourer.damage);
+
+        if (player.hp <= 0)
+            break;
+
+        print("\n");
+        print(middle "⚡ A data storm bursts from %s, crashing into your core!\n", Code_Devourer.name);
+        Delay(800);
+        print(middle "You stagger, absorbing %d damage... Your HP now stands at %d\n\n", Code_Devourer.damage, player.hp);
+        Delay(1000);
+        if (skipped_player_turn)
+        {
+            skipped_player_turn = false;
+            continue;
+        }
+
+        if (minion_alive)
+        {
+            if (Code_Minion.hp <= 0)
+            {
+                minion_alive = false;
+                print(middle "✅ You have defeated the Code Minion!\n\n");
+                Delay(800);
+                goto minionDied;
+            }
+            else
+            {
+                take_damage(&player, Code_Minion.damage);
+                print(middle "👾 The Code Minion bites into your code, dealing %d damage! Your HP is now %d\n\n", Code_Minion.damage, player.hp);
+                Delay(800);
+            }
+
+            print(middle "What's your move, CodeKnight %s?\n\n", player.name);
+            print(middle "[1] - Attack Boss with your sword\n");
+            print(middle "[2] - Attack Minion with your sword\n");
+        }
+        else
+        {
+        minionDied:
+            print(middle "What's your move, CodeKnight %s?\n\n", player.name);
+            print(middle "[A] - Attack with your sword\n");
+        }
+        print(middle "[I] - Use Inventory\n");
+        print(middle "[S] - View your stats\n");
+        print(middle ">> ");
+        scanf(" %c", &action);
+        while (getchar() != '\n');
+
+        // Process action based on input
+        if (action == '1') // Boss
+        {
+            choose_action(&Code_Devourer, '1');
+        }
+        else if (action == '2') // Minion
+        {
+            if (minion_alive)
+                choose_action(&Code_Minion, '2');
+            else
+                print(middle "There is no minion to attack.\n");
+        }
+        else if (action == 'A' || action == 'a')
+        {
+            choose_action(&Code_Devourer, 'A');  // For old default boss hit
+        }
+        else if (action == 'I' || action == 'i' || action == 'S' || action == 's')
+        {
+            choose_action(NULL, action);  // For inventory / stats
+        }
+        else
+        {
+            print(middle "Invalid input.\n");
+        }
+    }
+
+    if (Code_Devourer.hp <= 0)
+    {
+        player.hp = player.max_hp;
+        player.stamina = player.max_stamina;
+        player.exp += Code_Devourer.expReward;
+        player.coins += Code_Devourer.coinsReward;
+
+        print("\n");
+        print(middle "🎉 You did it. You defeated the Code Devourer.\n\n");
+        print(middle "🏅 You Gained %d Coins\n", Code_Devourer.coinsReward);
+        print(middle "⭐ You Gained %d Exp\n\n", Code_Devourer.expReward);
+        check_level_up();
+        random_loot_drop(&Code_Devourer);
+
+        Delay(1000);
+        print(middle line "\n");
+        Delay(1000);
+        print(middle "The Devourer lets out a final roar, its code unraveling into blinding light.\n\n");
+        Delay(1400);
+        print(middle "A calm silence washes over the chamber...\n\n");
+        Delay(1300);
+        print(middle "You breathe deep. You've reached the end.\n\n");
+        Delay(1300);
+        print(middle "The realm recognizes your strength...\n\n");
+        Delay(1200);
+        print(middle "And the title of CodeKnight is now yours... truly.\n\n");
+        Delay(1500);
+    }
+}
+
+void take_damage(Player_Stats* p, int n)
+{
+    p->hp -= n;
+}
+
+void choose_action(Enemy* Enm, char action)
+{
+    switch (action)
+    {
+    case 'A':
+    case 'a':
+    case '1':
+    case '2':
+        if (Enm == NULL) {
+            print(middle "No enemy selected.\n");
+            return;
+        }
+        if (player.stamina >= 10)
+        {
+            print("\n");
+
+            int actual_damage = player.dealtDamage;
+            if (strcmp(Enm->name, "Obsidian Brute") == 0)
+            {
+                int reduction = (Enm->hp <= (Enm->max_hp / 2)) ? 6 : 4;
+                actual_damage -= reduction;
+                print(middle "Obsidian Brute's armor absorbs %d damage!\n", reduction);
+                Delay(500);
+            }
+
+            Enm->hp -= actual_damage;
+            player.stamina -= 10;
+            print(middle "You have Dealt %d damage to %s, and your remaining stamina is %d\n\n", actual_damage, Enm->name, player.stamina);
+            Delay(700);
+        }
+        else
+        {
+            print("\n");
+            print(middle "Not enough stamina to attack.\n");
+            stamina_regen();
+            Delay(700);
+        }
+        break;
+
+    case 'I':
+    case 'i':
+    {
+        stamina_regen();
+        while (1)
+        {
+            print_inventory();
+            print(middle "Which item would you like to use? [1-5] or 0 to cancel\n");
+            print(middle ">> ");
+            int choice;
+            scanf("%d", &choice);
+            while (getchar() != '\n');
+
+            if (choice >= 1 && choice <= 5)
+            {
+                char* selected = player.inventory[choice - 1];
+                if (strcmp(selected, "Elixir") == 0)
+                {
+                    player.hp += 40;
+                    if (player.hp >= player.max_hp)
+                    {
+                        player.hp = player.max_hp;
+                    }
+                    print(middle "🌟 You used the Elixir! You gained +40 hp, your hp is now %d\n", player.hp);
+                    strcpy(player.inventory[choice - 1], "Empty");
+                }
+                else if (strcmp(selected, "Health Food") == 0)
+                {
+                    player.hp += 15;
+                    if (player.hp > player.max_hp) player.hp = player.max_hp;
+                    print(middle "You used Health Food! HP is now %d\n", player.hp);
+                    strcpy(player.inventory[choice - 1], "Empty");
+                }
+                else if (strcmp(selected, "Stamina Potion") == 0)
+                {
+                    player.stamina += 15;
+                    if (player.stamina > player.max_stamina) player.stamina = player.max_stamina;
+                    print(middle "You used Stamina Potion! Stamina is now %d\n", player.stamina);
+                    strcpy(player.inventory[choice - 1], "Empty");
+                }
+                else
+                {
+                    print(middle "That slot is empty.\n");
+                }
+            }
+            else if (choice == 0)
+            {
+                print(middle "Cancelled item use.\n");
+                break; // ✅ Exit the loop ONLY if the player cancels
+            }
+            else
+            {
+                print(middle "Invalid choice.\n");
+            }
+        }
+
+        break; // 🟢 Don't forget this to exit the 'I' case!
+    }
+
+
+    case 'S':
+    case 's':
+        stamina_regen();
+        show_stats();
+        Delay(700);
+        break;
+
+    default:
+        print(middle "Invalid input.\n");
+        break;
+    }
+}
+
+void stamina_regen(void)
+{
+    if (player.stamina < player.max_stamina)
+    {
+        player.stamina += 5;
+        print("\n");
+        print(middle "You gained 5 stamina back, your stamina is %d\n", player.stamina);
+    }
+    else
+    {
+        print("\n");
+        print(middle "You are already at max stamina, your stamina is %d\n", player.stamina);
+    }
+}
+
+void show_stats(void)
+{
+    print("\n\n");
+    print(middle "Player Stats:\n");
+    print(middle "Player's HP is %d\n", player.hp);
+    print(middle "Player's Level is %d\n", player.level);
+    print(middle "Player's Coins are %d\n", player.coins);
+    print(middle "Player's Exp is %d\n", player.exp);
+    print(middle "Player's damage is %d\n", player.dealtDamage);
+    print(middle "Player's stamina is %d\n\n", player.stamina);
+
+    print(middle "Press any key to return...\n");
+    _getch();
+
+}
+
+void print_inventory(void)
+{
+    print("\n\n");
+    print(middle "INVENTORY:\n");
+    for (int i = 0; i < 4; i++)
+    {
+        print(middle "%s\n", player.inventory[i]);
+    }
+    if (strcmp(player.inventory[4], "Elixir") == 0)
+        print(middle "Elixir (Gift from Merchant)\n");
+    print("\n");
+}
+
+void check_level_up(void)
+{
+    while (player.exp >= (20 + (player.level * 5)))
+    {
+        int required_exp = (20 + (player.level * 5));
+        player.exp -= required_exp;
+
+        print("\n\n");
+
+        print(middle "You leveled up!, You are now level %d\n", player.level);
+        if (player.level <= 5)
+        {
+            player.dealtDamage += 2;
+            print(middle "Your damage increased by 2! You now deal %d damage.\n", player.dealtDamage);
+        }
+        else if (player.level == 7 || player.level == 9 || player.level == 11 || player.level == 13 || player.level == 15)
+        {
+            player.dealtDamage += 2;
+            print(middle "Your damage increased by 2! You now deal %d damage.\n", player.dealtDamage);
+        }
+        if (player.level <= 5)
+        {
+            player.max_hp += 10;
+            print(middle "Your Hp has increased by 10! Your max hp is now %d\n", player.max_hp);
+        }
+        else if (player.level == 7 || player.level == 9 || player.level == 11 || player.level == 13 || player.level == 15)
+        {
+            player.max_hp += 10;
+            print(middle "Your Hp has increased by 10! Your max hp is now %d\n", player.max_hp);
+        }
+        if (player.level <= 5)
+        {
+            player.max_stamina += 10;
+            print(middle "Your stamina has increased by 10!, and your total stamina can reach to %d!\n", player.max_stamina);
+        }
+        else if (player.level == 7 || player.level == 9 || player.level == 11 || player.level == 13 || player.level == 15)
+        {
+            player.max_stamina += 10;
+            print(middle "Your stamina has increased by 10!, and your total stamina can reach to %d!\n", player.max_stamina);
+        }
+        player.hp = player.max_hp;
+        player.stamina = player.max_stamina;
+        player.level++;
+    }
+}
+
+void random_loot_drop(Enemy* Enm)
+{
+    chance = rand() % 10;
+
+    print("\n");
+
+    switch (chance)
+    {
+    case 0:
+    case 1: // 20% chance – Stamina Potion
+        for (int i = 0; i < 4; i++)
+        {
+            if (strcmp(player.inventory[i], "Empty") == 0)
+            {
+                strcpy(player.inventory[i], "Stamina Potion");
+                print(middle "%s dropped a Stamina Potion! (20\%)\n", Enm->name);
+                return;
+            }
+        }
+        print(middle "%s dropped a Stamina Potion, but your inventory is full!\n", Enm->name);
+        break;
+    case 2: // 10% chance – Health Food
+        for (int i = 0; i < 4; i++)
+        {
+            if (strcmp(player.inventory[i], "Empty") == 0)
+            {
+                strcpy(player.inventory[i], "Health Food");
+                print(middle "%s dropped a Health Food! (10\%)\n", Enm->name);
+                return;
+            }
+        }
+        print(middle "%s dropped a Health Food, but your inventory is full!\n", Enm->name);
+        break;
+    default: // 70% chance – Nothing
+        print(middle "%s dropped nothing but dust...\n", Enm->name);
+        break;
+    }
+}
+
+void reset_player(void)
+{
+    strcpy(player.name, "");
+    player.coins = 0;
+    player.max_hp = 100;
+    player.hp = player.max_hp;
+    player.dealtDamage = 10;
+    player.max_stamina = 50;
+    player.stamina = player.max_stamina;
+    player.exp = 0;
+    player.level = 1;
+
+    for (int i = 0; i < 5; i++) {
+        if (player.inventory[i] != NULL)
+        {
+            free(player.inventory[i]);
+        }
+        player.inventory[i] = malloc(20 * sizeof(char));
+        strcpy(player.inventory[i], "Empty");
+    }
+
+    Shadow_Monster.hp = 80;
+    Shadow_Monster.level = 1;
+    Shadow_Monster.damage = 4;
+    Shadow_Monster.expReward = 25;
+    Shadow_Monster.coinsReward = 4;
+
+    Spectral_Archer.hp = 100;
+    Spectral_Archer.level = 3;
+    Spectral_Archer.damage = 6;
+    Spectral_Archer.expReward = 35;
+    Spectral_Archer.coinsReward = 6;
+
+    Dark_Sorcerer.hp = 120;
+    Dark_Sorcerer.level = 4;
+    Dark_Sorcerer.damage = 8;
+    Dark_Sorcerer.expReward = 50;
+    Dark_Sorcerer.coinsReward = 10;
+
+    Null_Warden.hp = 140;
+    Null_Warden.level = 6;
+    Null_Warden.damage = 10;
+    Null_Warden.expReward = 65;
+    Null_Warden.coinsReward = 14;
+
+    Obsidian_Brute.hp = 160;
+    Obsidian_Brute.max_hp = 160;
+    Obsidian_Brute.level = 8;
+    Obsidian_Brute.damage = 12;
+    Obsidian_Brute.expReward = 85;
+    Obsidian_Brute.coinsReward = 18;
+
+    Echo_Stalker.hp = 170;
+    Echo_Stalker.level = 10;
+    Echo_Stalker.damage = 14;
+    Echo_Stalker.expReward = 105;
+    Echo_Stalker.coinsReward = 22;
+
+    Shardhowl.hp = 190;
+    Shardhowl.level = 13;
+    Shardhowl.damage = 16;
+    Shardhowl.expReward = 130;
+    Shardhowl.coinsReward = 26;
+
+    Code_Minion.hp = 20;
+    Code_Minion.level = 3;
+    Code_Minion.damage = 3;
+    Code_Minion.expReward = 5;
+
+    Code_Devourer.hp = 210;
+    Code_Devourer.max_hp = 210;
+    Code_Devourer.level = 16;
+    Code_Devourer.damage = 20;
+    Code_Devourer.expReward = 150;
+    Code_Devourer.coinsReward = 50;
+}
+
+void shop(void)
+{
+    char action;
+
+    while (1)
+    {
+        print(middle "Welcome to my humble shop, CodeKnight.\n");
+        print(middle "What would you like to buy? ");
+        print("(You have %d coins.)\n", player.coins);
+        print(middle "[1] Stamina Potion (10 coins)\n");
+        print(middle "[2] Health Food (15 coins)\n");
+        print(middle "[I] View Inventory\n");
+        print(middle "[E] Exit Shop\n");
+        print(middle ">>");
+        scanf(" %c", &action);
+        while (getchar() != '\n');
+        action = toupper(action);
+
+        switch (action)
+        {
+        case '1':
+            if (player.coins >= 10)
+            {
+                int bought = 0;
+                for (int i = 0; i < 4; i++)
+                {
+                    if (strcmp(player.inventory[i], "Empty") == 0)
+                    {
+                        strcpy(player.inventory[i], "Stamina Potion");
+                        player.coins -= 10;
+                        print(middle "Successfully bought Stamina Potion. You have %d coins left.\n", player.coins);
+                        bought = 1;
+                        break;
+                    }
+                }
+                if (!bought)
+                {
+                    print("\n");
+                    print(middle "You don't have enough storage to buy a Stamina Potion.\n\n");
+                }
+            }
+            else
+            {
+                print("\n");
+                print(middle "You don't have enough coins.\n\n");
+            }
+            break;
+
+        case '2':
+            if (player.coins >= 15)
+            {
+                int bought = 0;
+                for (int i = 0; i < 4; i++)
+                {
+                    if (strcmp(player.inventory[i], "Empty") == 0)
+                    {
+                        strcpy(player.inventory[i], "Health Food");
+                        player.coins -= 15;
+                        print(middle "Successfully bought Health Food. You have %d coins left.\n", player.coins);
+                        bought = 1;
+                        break;
+                    }
+                }
+                if (!bought)
+                {
+                    print("\n");
+                    print(middle "You don't have enough storage to buy a Health Food.\n\n");
+                }
+            }
+            else
+            {
+                print("\n");
+                print(middle "You don't have enough coins.\n\n");
+            }
+            break;
+
+        case 'I':
+            print_inventory();
+            break;
+
+        case 'E':
+            return;
+            break;
+
+        default:
+            print(middle "Please enter one of the actions listed above.\n");
+            break;
+        }
+    }
+}
+
+void death_scene(Enemy* Enm)
+{
+    print("\n");
+    Delay(600);
+
+    if (strcmp(Enm->name, "Shadow Monster") == 0)
+    {
+        print(middle "You collapse as shadows engulf your vision...\n");
+        Delay(800);
+        print(middle "The first trial ends before it truly began.\n");
+    }
+    else if (strcmp(Enm->name, "Spectral Archer") == 0)
+    {
+        print(middle "Your vision blurs as one final arrow pierces your code...\n");
+        Delay(800);
+        print(middle "The Spectral Archer silently fades, leaving no trace of your effort.\n");
+    }
+    else if (strcmp(Enm->name, "Dark Sorcerer") == 0)
+    {
+        print(middle "Dark runes sear into your mind as you fall to the ground...\n");
+        Delay(800);
+        print(middle "The Sorcerer whispers, 'Not strong enough... not yet.'\n");
+    }
+    else if (strcmp(Enm->name, "Null Warden") == 0)
+    {
+        print(middle "Your body freezes as the realm itself forgets your name...\n");
+        Delay(800);
+        print(middle "Null claims another soul. You vanish from memory.\n");
+    }
+    else if (strcmp(Enm->name, "Obsidian Brute") == 0)
+    {
+        print(middle "You crumble beneath the brute's hammering blows...\n");
+        Delay(800);
+        print(middle "Even stone couldn't endure such wrath.\n");
+    }
+    else if (strcmp(Enm->name, "Echo Stalker") == 0)
+    {
+        print(middle "Your final scream echoes... then vanishes.\n");
+        Delay(800);
+        print(middle "The shadow of yourself smirks. Only one of you walks away.\n");
+    }
+    else if (strcmp(Enm->name, "Shardhowl") == 0)
+    {
+        print(middle "Shards tear through you as your reflection shatters...\n");
+        Delay(800);
+        print(middle "The last thing you see is your own fractured face.\n");
+    }
+    else if (strcmp(Enm->name, "Code Devourer") == 0)
+    {
+        print(middle "You fall to your knees as your code begins to unravel...\n");
+        Delay(800);
+        print(middle "The Devourer feasts on your essence.\n");
+        Delay(800);
+        print(middle "You were close... but the realm remains corrupted.\n");
+    }
+
+    print("\n");
+}
